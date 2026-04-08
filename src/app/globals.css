@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a0a0c;
+  --surface-1: #111114;
+  --surface-2: #1a1a1f;
+  --surface-3: #242429;
+  --border: #2a2a30;
+  --text: #e4e4e7;
+  --text-dim: #71717a;
+  --accent: #10b981;
+  --accent-dim: #065f46;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+@layer utilities {
+  .score-pill {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold;
+  }
+}
