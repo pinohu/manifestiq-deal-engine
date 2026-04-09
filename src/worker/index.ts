@@ -12,6 +12,10 @@ const pool = new Pool({
   max: 5,
 });
 
+pool.on('connect', (client) => {
+  client.query('SET search_path TO manifestiq, public');
+});
+
 const SCORE_THRESHOLD = parseInt(process.env.SCORE_THRESHOLD || '15', 10);
 const DAILY_BUDGET_USD = parseFloat(process.env.DAILY_LLM_BUDGET || '5');
 
