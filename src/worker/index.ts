@@ -21,7 +21,7 @@ const DAILY_BUDGET_USD = parseFloat(process.env.DAILY_LLM_BUDGET || '5');
 
 async function getDailySpend(): Promise<number> {
   const res = await pool.query(
-    `SELECT COALESCE(SUM(cost_usd), 0) as total FROM evaluations WHERE created_at >= CURRENT_DATE`
+    `SELECT COALESCE(SUM(cost_usd), 0) as total FROM miq_evaluations WHERE created_at >= CURRENT_DATE`
   );
   return parseFloat(res.rows[0].total);
 }
@@ -40,7 +40,7 @@ const scoreWorker = new Worker(
     }
 
     // Fetch lead
-    const leadRes = await pool.query('SELECT * FROM leads WHERE id = $1', [leadId]);
+    const leadRes = await pool.query('SELECT * FROM miq_leads WHERE id = $1', [leadId]);
     if (leadRes.rows.length === 0) throw new Error(`Lead ${leadId} not found`);
     const lead = leadRes.rows[0];
 
@@ -57,7 +57,7 @@ const scoreWorker = new Worker(
 
     // Insert evaluation
     await pool.query(
-      `INSERT INTO evaluations (lead_id, urgency_score, profit_potential_score, flip_ease_score, risk_score,
+      `INSERT INTO miq_evaluations (lead_id, urgency_score, profit_potential_score, flip_ease_score, risk_score,
         estimated_market_value, max_buy_price, target_sell_price, reasoning, model_used, tokens_used, cost_usd)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
       [
@@ -77,11 +77,11 @@ const scoreWorker = new Worker(
     );
 
     // Update lead status
-    await pool.query(`UPDATE leads SET status = 'scored' WHERE id = $1`, [leadId]);
+    await pool.query(`UPDATE miq_leads SET status = 'scored' WHERE id = $1`, [leadId]);
 
     // Log action
     await pool.query(
-      `INSERT INTO action_log (lead_id, action, details) VALUES ($1, 'scored', $2)`,
+      `INSERT INTO miq_action_log (lead_id, action, details) VALUES ($1, 'scored', $2)`,
       [leadId, JSON.stringify({ total_score: result.urgency_score + result.profit_potential_score + result.flip_ease_score - result.risk_score, cost })]
     );
 
@@ -113,7 +113,7 @@ const alertWorker = new Worker(
 
     const res = await pool.query(
       `SELECT l.*, e.estimated_market_value, e.max_buy_price, e.target_sell_price, e.reasoning, e.total_score
-       FROM leads l JOIN evaluations e ON e.lead_id = l.id WHERE l.id = $1 ORDER BY e.created_at DESC LIMIT 1`,
+       FROM miq_leads l JOIN miq_evaluations e ON e.lead_id = l.id WHERE l.id = $1 ORDER BY e.created_at DESC LIMIT 1`,
       [leadId]
     );
     if (res.rows.length === 0) return;
@@ -138,7 +138,7 @@ const alertWorker = new Worker(
 
     // Log
     await pool.query(
-      `INSERT INTO action_log (lead_id, action, details) VALUES ($1, 'alert_sent', $2)`,
+      `INSERT INTO miq_action_log (lead_id, action, details) VALUES ($1, 'alert_sent', $2)`,
       [leadId, JSON.stringify({ total_score: totalScore, channel: webhookUrl ? 'webhook' : 'console' })]
     );
 

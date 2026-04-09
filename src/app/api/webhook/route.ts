@@ -12,10 +12,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const leads = Array.isArray(body) ? body : [body];
+    const miq_leads = Array.isArray(body) ? body : [body];
     const results: any[] = [];
 
-    for (const item of leads) {
+    for (const item of miq_leads) {
       const title = item.title || item.name || item.subject || '';
       const source = item.source || 'webhook';
       if (!title) continue;
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         .digest('hex').slice(0, 16);
 
       const res = await query(
-        `INSERT INTO leads (source, title, description, asking_price, location, url, raw_json, idempotency_key)
+        `INSERT INTO miq_leads (source, title, description, asking_price, location, url, raw_json, idempotency_key)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (idempotency_key) DO NOTHING RETURNING id`,
         [source, title, item.description || null, item.asking_price || item.price || null,
          item.location || null, item.url || item.link || null, JSON.stringify(item), `${source}-${hash}`]

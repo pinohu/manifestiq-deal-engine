@@ -22,13 +22,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (fields.length === 0) return NextResponse.json({ error: 'no fields' }, { status: 400 });
 
   values.push(params.id);
-  await query(`UPDATE deals SET ${fields.join(', ')} WHERE id = $${i}`, values);
+  await query(`UPDATE miq_deals SET ${fields.join(', ')} WHERE id = $${i}`, values);
 
   // Log
-  const deal = await query(`SELECT lead_id FROM deals WHERE id = $1`, [params.id]);
+  const deal = await query(`SELECT lead_id FROM miq_deals WHERE id = $1`, [params.id]);
   if (deal.rows.length) {
     await query(
-      `INSERT INTO action_log (lead_id, deal_id, action, details) VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO miq_action_log (lead_id, deal_id, action, details) VALUES ($1, $2, $3, $4)`,
       [deal.rows[0].lead_id, params.id, `deal_${body.status || 'updated'}`, JSON.stringify(body)]
     );
   }

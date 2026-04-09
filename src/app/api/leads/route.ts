@@ -7,7 +7,7 @@ import crypto from 'crypto';
 
 async function scoreLeadSync(leadId: string) {
   try {
-    const leadRes = await query('SELECT * FROM leads WHERE id = $1', [leadId]);
+    const leadRes = await query('SELECT * FROM miq_leads WHERE id = $1', [leadId]);
     if (leadRes.rows.length === 0) return;
     const lead = leadRes.rows[0];
 
@@ -20,15 +20,15 @@ async function scoreLeadSync(leadId: string) {
     });
 
     await query(
-      `INSERT INTO evaluations (lead_id, urgency_score, profit_potential_score, flip_ease_score, risk_score,
+      `INSERT INTO miq_evaluations (lead_id, urgency_score, profit_potential_score, flip_ease_score, risk_score,
         estimated_market_value, max_buy_price, target_sell_price, reasoning, model_used, tokens_used, cost_usd)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
       [leadId, result.urgency_score, result.profit_potential_score, result.flip_ease_score, result.risk_score,
        result.estimated_market_value, result.max_buy_price, result.target_sell_price, result.reasoning, model, tokens, cost]
     );
 
-    await query(`UPDATE leads SET status = 'scored' WHERE id = $1`, [leadId]);
-    await query(`INSERT INTO action_log (lead_id, action, details) VALUES ($1, 'scored', $2)`,
+    await query(`UPDATE miq_leads SET status = 'scored' WHERE id = $1`, [leadId]);
+    await query(`INSERT INTO miq_action_log (lead_id, action, details) VALUES ($1, 'scored', $2)`,
       [leadId, JSON.stringify({ total_score: result.urgency_score + result.profit_potential_score + result.flip_ease_score - result.risk_score, cost, mode: 'sync' })]
     );
   } catch (err) {
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     const idempotencyKey = `${source}-${hash}`;
 
     const res = await query(
-      `INSERT INTO leads (source, title, description, asking_price, location, url, raw_json, idempotency_key)
+      `INSERT INTO miq_leads (source, title, description, asking_price, location, url, raw_json, idempotency_key)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (idempotency_key) DO NOTHING RETURNING id`,
       [source, title, description || null, asking_price || null, location || null, url || null,
        raw_json ? JSON.stringify(raw_json) : null, idempotencyKey]
@@ -102,9 +102,9 @@ export async function GET(req: NextRequest) {
       SELECT l.*, e.urgency_score, e.profit_potential_score, e.flip_ease_score, e.risk_score,
              e.total_score, e.estimated_market_value, e.max_buy_price, e.target_sell_price, e.reasoning,
              e.cost_usd, d.id as deal_id, d.status as deal_status
-      FROM leads l
-      LEFT JOIN LATERAL (SELECT * FROM evaluations WHERE lead_id = l.id ORDER BY created_at DESC LIMIT 1) e ON true
-      LEFT JOIN LATERAL (SELECT id, status FROM deals WHERE lead_id = l.id ORDER BY created_at DESC LIMIT 1) d ON true
+      FROM miq_leads l
+      LEFT JOIN LATERAL (SELECT * FROM miq_evaluations WHERE lead_id = l.id ORDER BY created_at DESC LIMIT 1) e ON true
+      LEFT JOIN LATERAL (SELECT id, status FROM miq_deals WHERE lead_id = l.id ORDER BY created_at DESC LIMIT 1) d ON true
     `;
     const conditions: string[] = [];
     const params: any[] = [];

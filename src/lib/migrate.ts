@@ -7,7 +7,7 @@ const pool = new Pool({
 const SQL = `
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-CREATE TABLE IF NOT EXISTS leads (
+CREATE TABLE IF NOT EXISTS miq_leads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   source TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -21,9 +21,9 @@ CREATE TABLE IF NOT EXISTS leads (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS evaluations (
+CREATE TABLE IF NOT EXISTS miq_evaluations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lead_id UUID NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  lead_id UUID NOT NULL REFERENCES miq_leads(id) ON DELETE CASCADE,
   urgency_score INT,
   profit_potential_score INT,
   flip_ease_score INT,
@@ -41,9 +41,9 @@ CREATE TABLE IF NOT EXISTS evaluations (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS deals (
+CREATE TABLE IF NOT EXISTS miq_deals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lead_id UUID NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  lead_id UUID NOT NULL REFERENCES miq_leads(id) ON DELETE CASCADE,
   status TEXT NOT NULL DEFAULT 'pursuing',
   buy_price NUMERIC,
   sell_price NUMERIC,
@@ -55,21 +55,21 @@ CREATE TABLE IF NOT EXISTS deals (
   closed_at TIMESTAMPTZ
 );
 
-CREATE TABLE IF NOT EXISTS action_log (
+CREATE TABLE IF NOT EXISTS miq_action_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lead_id UUID REFERENCES leads(id) ON DELETE SET NULL,
-  deal_id UUID REFERENCES deals(id) ON DELETE SET NULL,
+  lead_id UUID REFERENCES miq_leads(id) ON DELETE SET NULL,
+  deal_id UUID REFERENCES miq_deals(id) ON DELETE SET NULL,
   action TEXT NOT NULL,
   details JSONB,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
-CREATE INDEX IF NOT EXISTS idx_leads_created ON leads(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_evaluations_lead ON evaluations(lead_id);
-CREATE INDEX IF NOT EXISTS idx_evaluations_score ON evaluations(total_score DESC);
-CREATE INDEX IF NOT EXISTS idx_deals_status ON deals(status);
-CREATE INDEX IF NOT EXISTS idx_action_log_lead ON action_log(lead_id);
+CREATE INDEX IF NOT EXISTS idx_leads_status ON miq_leads(status);
+CREATE INDEX IF NOT EXISTS idx_leads_created ON miq_leads(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_evaluations_lead ON miq_evaluations(lead_id);
+CREATE INDEX IF NOT EXISTS idx_evaluations_score ON miq_evaluations(total_score DESC);
+CREATE INDEX IF NOT EXISTS idx_deals_status ON miq_deals(status);
+CREATE INDEX IF NOT EXISTS idx_action_log_lead ON miq_action_log(lead_id);
 `;
 
 async function migrate() {
