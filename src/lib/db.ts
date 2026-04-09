@@ -6,12 +6,15 @@ const pool = new Pool({
   max: 10,
 });
 
-pool.on('connect', (client) => {
-  client.query('SET search_path TO manifestiq, public');
-});
-
 export async function query(text: string, params?: any[]) {
-  return pool.query(text, params);
+  const client = await pool.connect();
+  try {
+    await client.query('SET search_path TO manifestiq, public');
+    const result = await client.query(text, params);
+    return result;
+  } finally {
+    client.release();
+  }
 }
 
 export default pool;
