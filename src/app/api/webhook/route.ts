@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { getScoreQueue } from '@/lib/queue';
+import { isQueueAvailable, getScoreQueue } from '@/lib/queue';
 import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
@@ -32,8 +32,12 @@ export async function POST(req: NextRequest) {
       );
 
       if (res.rows.length) {
-        const scoreQueue = getScoreQueue();
-        await scoreQueue.add('score', { leadId: res.rows[0].id }, { jobId: `score-${res.rows[0].id}` });
+        if (isQueueAvailable()) {
+          try {
+            const scoreQueue = getScoreQueue();
+            await scoreQueue.add('score', { leadId: res.rows[0].id }, { jobId: `score-${res.rows[0].id}` });
+          } catch { /* no redis */ }
+        }
         results.push({ id: res.rows[0].id, status: 'queued' });
       } else {
         results.push({ title, status: 'duplicate' });
